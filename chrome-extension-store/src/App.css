@@ -1,0 +1,53 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FFFFFF;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* カラースキーム */
+:root {
+  --primary-color: #a51e6d;
+  --primary-hover: #8c1858;
+  --secondary-color: #666666;
+  --background-color: #FFFFFF;
+  --card-background: #FFFFFF;
+  --border-color: #e0e0e0;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --star-color: #ff5757;
+  --success-color: #a51e6d;
+  --gradient-start: #ff5757;
+  --gradient-end: #8c52ff;
+  --shadow: 0 2px 8px rgba(165, 30, 109, 0.1), 0 1px 4px rgba(165, 30, 109, 0.08);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+}
