@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { initializeStore, searchExtensions } from '../data/store'
+import { initializeStore, searchExtensions, getAllTabs } from '../data/store'
 import ExtensionCard from '../components/ExtensionCard'
 import FilterBar from '../components/FilterBar'
 import './Home.css'
@@ -8,14 +8,43 @@ function Home({ searchQuery = '' }) {
   const [extensions, setExtensions] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('すべて')
   const [sortBy, setSortBy] = useState('downloads')
+  const [tabs, setTabs] = useState([])
+  const [activeTab, setActiveTab] = useState('1')
+  const [homeSettings, setHomeSettings] = useState({
+    title: 'SHIFTAI会員限定ストア',
+    subtitle: 'あなたのブラウジング体験をパワーアップ✨',
+    bannerImage: ''
+  })
 
   useEffect(() => {
     initializeStore()
+    loadTabs()
+    loadHomeSettings()
+  }, [])
+
+  useEffect(() => {
     loadExtensions()
-  }, [searchQuery, selectedCategory, sortBy])
+  }, [searchQuery, selectedCategory, sortBy, activeTab])
+
+  const loadTabs = () => {
+    const allTabs = getAllTabs()
+    setTabs(allTabs)
+    if (allTabs.length > 0 && !activeTab) {
+      setActiveTab(allTabs[0].id)
+    }
+  }
+
+  const loadHomeSettings = () => {
+    const settings = localStorage.getItem('home_settings')
+    if (settings) {
+      setHomeSettings(JSON.parse(settings))
+    }
+  }
 
   const loadExtensions = () => {
-    const results = searchExtensions(searchQuery, selectedCategory, sortBy)
+    let results = searchExtensions(searchQuery, selectedCategory, sortBy)
+    // アクティブなタブでフィルタリング
+    results = results.filter(ext => ext.tabId === activeTab || !ext.tabId)
     setExtensions(results)
   }
 
@@ -25,10 +54,30 @@ function Home({ searchQuery = '' }) {
   return (
     <div className="home">
       <div className="container">
+        {homeSettings.bannerImage && (
+          <div className="home-banner">
+            <img src={homeSettings.bannerImage} alt="Banner" />
+          </div>
+        )}
+
         <header className="page-header">
-          <h1>拡張機能ストア</h1>
-          <p>あなたのブラウジング体験をパワーアップ✨</p>
+          <h1>{homeSettings.title}</h1>
+          <p>{homeSettings.subtitle}</p>
         </header>
+
+        {tabs.length > 0 && (
+          <div className="tabs-container">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <FilterBar
           selectedCategory={selectedCategory}
@@ -39,7 +88,7 @@ function Home({ searchQuery = '' }) {
 
         {featuredExtensions.length > 0 && (
           <section className="featured-section">
-            <h2 className="section-title">✨ おすすめの拡張機能</h2>
+            <h2 className="section-title">✨ おすすめの制作物</h2>
             <div className="extensions-grid">
               {featuredExtensions.map(extension => (
                 <ExtensionCard key={extension.id} extension={extension} />
@@ -50,7 +99,7 @@ function Home({ searchQuery = '' }) {
 
         {regularExtensions.length > 0 && (
           <section className="extensions-section">
-            <h2 className="section-title">すべての拡張機能</h2>
+            <h2 className="section-title">すべての制作物</h2>
             <div className="extensions-grid">
               {regularExtensions.map(extension => (
                 <ExtensionCard key={extension.id} extension={extension} />
@@ -61,7 +110,7 @@ function Home({ searchQuery = '' }) {
 
         {extensions.length === 0 && (
           <div className="no-results">
-            <p>拡張機能が見つかりませんでした</p>
+            <p>制作物が見つかりませんでした</p>
             <p>別のキーワードやカテゴリで試してみてください</p>
           </div>
         )}

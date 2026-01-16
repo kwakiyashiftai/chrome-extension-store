@@ -15,7 +15,8 @@ export const mockExtensions = [
     reviewCount: 2341,
     featured: true,
     downloadUrl: 'https://example.com/dark-reader.crx',
-    createdAt: Date.now() - 86400000 * 30
+    createdAt: Date.now() - 86400000 * 30,
+    tabId: '1'
   },
   {
     id: '2',

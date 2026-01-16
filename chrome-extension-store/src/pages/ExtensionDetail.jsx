@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Star, Download, ArrowLeft } from 'lucide-react'
-import { getExtensionById, getReviewsByExtensionId, incrementDownloads, addReview } from '../data/store'
+import { Star, Download, ArrowLeft, Trash2 } from 'lucide-react'
+import { getExtensionById, getReviewsByExtensionId, incrementDownloads, addReview, deleteReview } from '../data/store'
 import ReviewCard from '../components/ReviewCard'
 import './ExtensionDetail.css'
 
@@ -10,11 +10,18 @@ function ExtensionDetail() {
   const navigate = useNavigate()
   const [extension, setExtension] = useState(null)
   const [reviews, setReviews] = useState([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [newReview, setNewReview] = useState({
     rating: 5,
     comment: '',
     author: ''
   })
+
+  useEffect(() => {
+    // 管理者権限チェック
+    const adminStatus = localStorage.getItem('is_admin')
+    setIsAdmin(adminStatus === 'true')
+  }, [])
 
   useEffect(() => {
     loadExtension()
@@ -63,6 +70,14 @@ function ExtensionDetail() {
     loadExtension()
   }
 
+  const handleDeleteReview = (reviewId) => {
+    if (window.confirm('このレビューを削除してもよろしいですか？')) {
+      deleteReview(reviewId, id)
+      loadReviews()
+      loadExtension()
+    }
+  }
+
   const renderStars = (rating) => {
     return [...Array(5)].map((_, index) => (
       <Star
@@ -78,7 +93,7 @@ function ExtensionDetail() {
     return (
       <div className="extension-detail">
         <div className="container">
-          <p>拡張機能が見つかりません</p>
+          <p>制作物が見つかりません</p>
         </div>
       </div>
     )
@@ -185,7 +200,7 @@ function ExtensionDetail() {
                   id="comment"
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  placeholder="この拡張機能についての感想を書いてください"
+                  placeholder="この制作物についての感想を書いてください"
                   rows="4"
                   required
                 />
@@ -201,7 +216,18 @@ function ExtensionDetail() {
                 <p className="no-reviews">まだレビューがありません。最初のレビューを投稿しましょう！</p>
               ) : (
                 reviews.map(review => (
-                  <ReviewCard key={review.id} review={review} />
+                  <div key={review.id} className="review-item-wrapper">
+                    <ReviewCard review={review} />
+                    {isAdmin && (
+                      <button
+                        className="delete-review-btn"
+                        onClick={() => handleDeleteReview(review.id)}
+                        title="レビューを削除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 ))
               )}
             </div>

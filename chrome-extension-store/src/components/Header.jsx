@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Search, Upload } from 'lucide-react'
+import shiftaiLogo from '../assets/shiftai-logo.png'
 import './Header.css'
 
 function Header({ searchQuery = '', setSearchQuery = () => {}, showSearch = true }) {
@@ -7,8 +8,12 @@ function Header({ searchQuery = '', setSearchQuery = () => {}, showSearch = true
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          <div className="logo-icon">🧩</div>
-          <span className="logo-text">Extension Store</span>
+          <img
+            src={shiftaiLogo}
+            alt="SHIFTAI Logo"
+            className="logo-image"
+          />
+          <span className="logo-text">SHIFTAI専用 制作物ストア</span>
         </Link>
 
         {showSearch && (
@@ -16,7 +21,7 @@ function Header({ searchQuery = '', setSearchQuery = () => {}, showSearch = true
             <Search size={20} className="search-icon" />
             <input
               type="text"
-              placeholder="拡張機能を検索..."
+              placeholder="制作物を検索..."
               className="search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -26,7 +31,7 @@ function Header({ searchQuery = '', setSearchQuery = () => {}, showSearch = true
 
         <Link to="/upload" className="upload-btn">
           <Upload size={18} />
-          <span>拡張機能を投稿</span>
+          <span>制作物を投稿</span>
         </Link>
       </div>
     </header>

@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, X } from 'lucide-react'
-import { addExtension } from '../data/store'
+import { addExtension, getAllTabs } from '../data/store'
 import { categories } from '../data/mockData'
 import './UploadExtension.css'
 
 function UploadExtension() {
   const navigate = useNavigate()
+  const [tabs, setTabs] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -17,8 +18,19 @@ function UploadExtension() {
     icon: '',
     screenshots: [],
     zipFile: null,
-    zipFileName: ''
+    zipFileName: '',
+    discordName: '',
+    email: '',
+    tabId: '1'
   })
+
+  useEffect(() => {
+    const allTabs = getAllTabs()
+    setTabs(allTabs)
+    if (allTabs.length > 0) {
+      setFormData(prev => ({ ...prev, tabId: allTabs[0].id }))
+    }
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -92,8 +104,15 @@ function UploadExtension() {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    if (!formData.name.trim() || !formData.description.trim() || !formData.longDescription.trim()) {
+    if (!formData.name.trim() || !formData.description.trim() || !formData.longDescription.trim() || !formData.discordName.trim() || !formData.email.trim()) {
       alert('必須項目を入力してください')
+      return
+    }
+
+    // メールアドレスの簡易バリデーション
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      alert('正しいメールアドレスを入力してください')
       return
     }
 
@@ -108,7 +127,7 @@ function UploadExtension() {
     }
 
     const newExtension = addExtension(formData)
-    alert('拡張機能を投稿しました！')
+    alert('制作物を投稿しました！')
     navigate(`/extension/${newExtension.id}`)
   }
 
@@ -121,8 +140,8 @@ function UploadExtension() {
         </button>
 
         <div className="upload-header">
-          <h1>拡張機能を投稿</h1>
-          <p>あなたの拡張機能を共有しましょう✨</p>
+          <h1>制作物を投稿</h1>
+          <p>あなたの制作物を共有しましょう✨</p>
         </div>
 
         <form className="upload-form" onSubmit={handleSubmit}>
@@ -130,7 +149,7 @@ function UploadExtension() {
             <h2>基本情報</h2>
 
             <div className="form-group">
-              <label htmlFor="name">拡張機能名 *</label>
+              <label htmlFor="name">制作物名 *</label>
               <input
                 type="text"
                 id="name"
@@ -164,7 +183,7 @@ function UploadExtension() {
                 name="longDescription"
                 value={formData.longDescription}
                 onChange={handleInputChange}
-                placeholder="拡張機能の機能や特徴を詳しく説明してください"
+                placeholder="制作物の機能や特徴を詳しく説明してください"
                 rows="6"
                 required
               />
@@ -188,6 +207,50 @@ function UploadExtension() {
             </div>
 
             <div className="form-group">
+              <label htmlFor="tabId">表示タブ *</label>
+              <select
+                id="tabId"
+                name="tabId"
+                value={formData.tabId}
+                onChange={handleInputChange}
+                required
+              >
+                {tabs.map(tab => (
+                  <option key={tab.id} value={tab.id}>
+                    {tab.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="discordName">Discord名 *</label>
+              <input
+                type="text"
+                id="discordName"
+                name="discordName"
+                value={formData.discordName}
+                onChange={handleInputChange}
+                placeholder="例: username#1234"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email">メールアドレス *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="例: user@example.com"
+                required
+              />
+              <span className="field-note">※ このメールアドレスはストア内には表示されません</span>
+            </div>
+
+            <div className="form-group">
               <label htmlFor="downloadUrl">ダウンロードURL</label>
               <input
                 type="url"
@@ -201,7 +264,7 @@ function UploadExtension() {
             </div>
 
             <div className="form-group">
-              <label>拡張機能ZIPファイル</label>
+              <label>制作物ZIPファイル</label>
               <div className="zip-upload-area">
                 {formData.zipFile ? (
                   <div className="zip-file-preview">
@@ -247,7 +310,7 @@ function UploadExtension() {
                   checked={formData.featured}
                   onChange={handleInputChange}
                 />
-                <span>おすすめの拡張機能として表示</span>
+                <span>おすすめの制作物として表示</span>
               </label>
             </div>
           </div>
