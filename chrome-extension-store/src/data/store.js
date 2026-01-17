@@ -1,234 +1,477 @@
-import { mockExtensions, mockReviews } from './mockData'
+import { supabase } from '../lib/supabase'
 
-const STORAGE_KEYS = {
-  EXTENSIONS: 'chrome_store_extensions',
-  REVIEWS: 'chrome_store_reviews',
-  TABS: 'chrome_store_tabs'
+// 初期化（テーブルは既にSupabaseで作成済み）
+export const initializeStore = async () => {
+  // テーブルが空の場合のみデフォルトデータを追加する処理は不要
+  // Supabase側でデフォルトデータは既に挿入済み
+  return true
 }
 
-// LocalStorageの初期化
-export const initializeStore = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.EXTENSIONS)) {
-    // tabIdを追加してから保存
-    const extensionsWithTabId = mockExtensions.map(ext => ({
-      ...ext,
-      tabId: ext.tabId || '1'
-    }))
-    localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(extensionsWithTabId))
-  } else {
-    // 既存の拡張機能にtabIdがない場合は追加
-    const extensions = getAllExtensions()
-    let updated = false
-    const updatedExtensions = extensions.map(ext => {
-      if (!ext.tabId) {
-        updated = true
-        return { ...ext, tabId: '1' }
-      }
-      return ext
-    })
-    if (updated) {
-      localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(updatedExtensions))
+// ファイルアップロード関連
+export const uploadFile = async (file, bucketName, filePath) => {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) throw error
+
+    // 公開URLを取得
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath)
+
+    return urlData.publicUrl
+  } catch (error) {
+    console.error('Error uploading file:', error)
+    throw error
+  }
+}
+
+// Base64からBlobに変換してアップロード
+export const uploadBase64File = async (base64String, bucketName, filePath) => {
+  try {
+    // Base64からBlobに変換
+    const base64Data = base64String.split(',')[1]
+    const mimeType = base64String.split(',')[0].split(':')[1].split(';')[0]
+    const byteCharacters = atob(base64Data)
+    const byteNumbers = new Array(byteCharacters.length)
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i)
     }
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.REVIEWS)) {
-    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(mockReviews))
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.TABS)) {
-    const defaultTabs = [
-      { id: '1', name: 'Chrome拡張機能', order: 0 }
-    ]
-    localStorage.setItem(STORAGE_KEYS.TABS, JSON.stringify(defaultTabs))
+    const byteArray = new Uint8Array(byteNumbers)
+    const blob = new Blob([byteArray], { type: mimeType })
+
+    return await uploadFile(blob, bucketName, filePath)
+  } catch (error) {
+    console.error('Error uploading base64 file:', error)
+    throw error
   }
 }
 
-// 拡張機能の取得
-export const getAllExtensions = () => {
-  const data = localStorage.getItem(STORAGE_KEYS.EXTENSIONS)
-  return data ? JSON.parse(data) : []
-}
+// Extensions関連
+export const getAllExtensions = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('extensions')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-export const getExtensionById = (id) => {
-  const extensions = getAllExtensions()
-  return extensions.find(ext => ext.id === id)
-}
-
-// 拡張機能の追加
-export const addExtension = (extension) => {
-  const extensions = getAllExtensions()
-  const newExtension = {
-    ...extension,
-    id: Date.now().toString(),
-    downloads: 0,
-    rating: 0,
-    reviewCount: 0,
-    createdAt: Date.now(),
-    tabId: extension.tabId || '1' // デフォルトは最初のタブ
-  }
-  extensions.push(newExtension)
-  localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(extensions))
-  return newExtension
-}
-
-// ダウンロード数の増加
-export const incrementDownloads = (id) => {
-  const extensions = getAllExtensions()
-  const extension = extensions.find(ext => ext.id === id)
-  if (extension) {
-    extension.downloads += 1
-    localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(extensions))
-    return extension
-  }
-  return null
-}
-
-// 評価の更新
-const updateExtensionRating = (extensionId) => {
-  const reviews = getReviewsByExtensionId(extensionId)
-  if (reviews.length === 0) return
-
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0)
-  const averageRating = totalRating / reviews.length
-
-  const extensions = getAllExtensions()
-  const extension = extensions.find(ext => ext.id === extensionId)
-  if (extension) {
-    extension.rating = Math.round(averageRating * 10) / 10
-    extension.reviewCount = reviews.length
-    localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(extensions))
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching extensions:', error)
+    return []
   }
 }
 
-// レビューの取得
-export const getAllReviews = () => {
-  const data = localStorage.getItem(STORAGE_KEYS.REVIEWS)
-  return data ? JSON.parse(data) : []
-}
+export const getExtensionById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from('extensions')
+      .select('*')
+      .eq('id', id)
+      .single()
 
-export const getReviewsByExtensionId = (extensionId) => {
-  const reviews = getAllReviews()
-  return reviews.filter(review => review.extensionId === extensionId)
-}
-
-// レビューの追加
-export const addReview = (review) => {
-  const reviews = getAllReviews()
-  const newReview = {
-    ...review,
-    id: Date.now().toString(),
-    createdAt: Date.now()
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching extension:', error)
+    return null
   }
-  reviews.push(newReview)
-  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews))
-
-  // 拡張機能の評価を更新
-  updateExtensionRating(review.extensionId)
-
-  return newReview
 }
 
-// 拡張機能の削除
-export const deleteExtension = (id) => {
-  const extensions = getAllExtensions()
-  const filteredExtensions = extensions.filter(ext => ext.id !== id)
-  localStorage.setItem(STORAGE_KEYS.EXTENSIONS, JSON.stringify(filteredExtensions))
+export const addExtension = async (extension) => {
+  try {
+    const timestamp = Date.now()
+    const extensionId = `ext_${timestamp}`
 
-  // 関連するレビューも削除
-  const reviews = getAllReviews()
-  const filteredReviews = reviews.filter(review => review.extensionId !== id)
-  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(filteredReviews))
+    // アイコンをアップロード
+    let iconUrl = extension.icon
+    if (extension.icon && extension.icon.startsWith('data:')) {
+      iconUrl = await uploadBase64File(
+        extension.icon,
+        'extension-assets',
+        `icons/${extensionId}.png`
+      )
+    }
 
-  return true
+    // スクリーンショットをアップロード
+    const screenshotUrls = []
+    if (extension.screenshots && extension.screenshots.length > 0) {
+      for (let i = 0; i < extension.screenshots.length; i++) {
+        const screenshot = extension.screenshots[i]
+        if (screenshot.startsWith('data:')) {
+          const url = await uploadBase64File(
+            screenshot,
+            'extension-assets',
+            `screenshots/${extensionId}_${i}.png`
+          )
+          screenshotUrls.push(url)
+        } else {
+          screenshotUrls.push(screenshot)
+        }
+      }
+    }
+
+    // ZIPファイルをアップロード
+    let zipFileUrl = extension.downloadUrl
+    let zipFileName = extension.zipFileName
+    if (extension.zipFile) {
+      zipFileUrl = await uploadFile(
+        extension.zipFile,
+        'extension-files',
+        `${extensionId}/${extension.zipFile.name}`
+      )
+      zipFileName = extension.zipFile.name
+    }
+
+    const { data, error } = await supabase
+      .from('extensions')
+      .insert([{
+        name: extension.name,
+        description: extension.description,
+        long_description: extension.longDescription,
+        category: extension.category,
+        download_url: zipFileUrl,
+        featured: extension.featured || false,
+        icon: iconUrl,
+        screenshots: screenshotUrls,
+        zip_file_url: zipFileUrl,
+        zip_file_name: zipFileName,
+        discord_name: extension.discordName,
+        email: extension.email,
+        tab_id: extension.tabId || '1',
+        downloads: 0,
+        rating: 0,
+        review_count: 0
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error adding extension:', error)
+    throw error
+  }
 }
 
-// レビューの削除
-export const deleteReview = (reviewId, extensionId) => {
-  const reviews = getAllReviews()
-  const filteredReviews = reviews.filter(review => review.id !== reviewId)
-  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(filteredReviews))
+export const incrementDownloads = async (id) => {
+  try {
+    const extension = await getExtensionById(id)
+    if (!extension) return null
 
-  // 拡張機能の評価を更新
-  updateExtensionRating(extensionId)
+    const { data, error } = await supabase
+      .from('extensions')
+      .update({ downloads: extension.downloads + 1 })
+      .eq('id', id)
+      .select()
+      .single()
 
-  return true
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error incrementing downloads:', error)
+    return null
+  }
+}
+
+export const deleteExtension = async (id) => {
+  try {
+    // レビューはCASCADE削除されるので、拡張機能のみ削除
+    const { error } = await supabase
+      .from('extensions')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting extension:', error)
+    return false
+  }
+}
+
+// Reviews関連
+export const getAllReviews = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+    return []
+  }
+}
+
+export const getReviewsByExtensionId = async (extensionId) => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('extension_id', extensionId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+    return []
+  }
+}
+
+export const addReview = async (review) => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert([{
+        extension_id: review.extensionId,
+        rating: review.rating,
+        comment: review.comment,
+        author: review.author
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // 拡張機能の評価を更新
+    await updateExtensionRating(review.extensionId)
+
+    return data
+  } catch (error) {
+    console.error('Error adding review:', error)
+    throw error
+  }
+}
+
+export const deleteReview = async (reviewId, extensionId) => {
+  try {
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId)
+
+    if (error) throw error
+
+    // 拡張機能の評価を更新
+    await updateExtensionRating(extensionId)
+
+    return true
+  } catch (error) {
+    console.error('Error deleting review:', error)
+    return false
+  }
+}
+
+// 評価の更新（内部関数）
+const updateExtensionRating = async (extensionId) => {
+  try {
+    const reviews = await getReviewsByExtensionId(extensionId)
+
+    if (reviews.length === 0) {
+      // レビューがない場合は0にリセット
+      await supabase
+        .from('extensions')
+        .update({ rating: 0, review_count: 0 })
+        .eq('id', extensionId)
+      return
+    }
+
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0)
+    const averageRating = totalRating / reviews.length
+
+    await supabase
+      .from('extensions')
+      .update({
+        rating: Math.round(averageRating * 10) / 10,
+        review_count: reviews.length
+      })
+      .eq('id', extensionId)
+
+  } catch (error) {
+    console.error('Error updating extension rating:', error)
+  }
 }
 
 // 検索とフィルタリング
-export const searchExtensions = (query, category = 'すべて', sortBy = 'downloads') => {
-  let extensions = getAllExtensions()
+export const searchExtensions = async (query, category = 'すべて', sortBy = 'downloads') => {
+  try {
+    let supabaseQuery = supabase.from('extensions').select('*')
 
-  // カテゴリフィルター
-  if (category && category !== 'すべて') {
-    extensions = extensions.filter(ext => ext.category === category)
+    // カテゴリフィルター
+    if (category && category !== 'すべて') {
+      supabaseQuery = supabaseQuery.eq('category', category)
+    }
+
+    // 検索クエリフィルター
+    if (query) {
+      // Supabaseのテキスト検索を使用
+      supabaseQuery = supabaseQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,long_description.ilike.%${query}%`)
+    }
+
+    // ソート
+    switch (sortBy) {
+      case 'downloads':
+        supabaseQuery = supabaseQuery.order('downloads', { ascending: false })
+        break
+      case 'rating':
+        supabaseQuery = supabaseQuery.order('rating', { ascending: false })
+        break
+      case 'newest':
+        supabaseQuery = supabaseQuery.order('created_at', { ascending: false })
+        break
+      default:
+        supabaseQuery = supabaseQuery.order('created_at', { ascending: false })
+        break
+    }
+
+    const { data, error } = await supabaseQuery
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error searching extensions:', error)
+    return []
   }
-
-  // 検索クエリフィルター
-  if (query) {
-    const lowerQuery = query.toLowerCase()
-    extensions = extensions.filter(ext =>
-      ext.name.toLowerCase().includes(lowerQuery) ||
-      ext.description.toLowerCase().includes(lowerQuery) ||
-      ext.longDescription.toLowerCase().includes(lowerQuery)
-    )
-  }
-
-  // ソート
-  switch (sortBy) {
-    case 'downloads':
-      extensions.sort((a, b) => b.downloads - a.downloads)
-      break
-    case 'rating':
-      extensions.sort((a, b) => b.rating - a.rating)
-      break
-    case 'newest':
-      extensions.sort((a, b) => b.createdAt - a.createdAt)
-      break
-    default:
-      break
-  }
-
-  return extensions
 }
 
-// タブの取得
-export const getAllTabs = () => {
-  const data = localStorage.getItem(STORAGE_KEYS.TABS)
-  const tabs = data ? JSON.parse(data) : []
-  return tabs.sort((a, b) => a.order - b.order)
-}
+// Tabs関連
+export const getAllTabs = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('tabs')
+      .select('*')
+      .order('order', { ascending: true })
 
-// タブの追加
-export const addTab = (name) => {
-  const tabs = getAllTabs()
-  const newTab = {
-    id: Date.now().toString(),
-    name,
-    order: tabs.length
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching tabs:', error)
+    return []
   }
-  tabs.push(newTab)
-  localStorage.setItem(STORAGE_KEYS.TABS, JSON.stringify(tabs))
-  return newTab
 }
 
-// タブの削除
-export const deleteTab = (id) => {
-  const tabs = getAllTabs()
-  const filteredTabs = tabs.filter(tab => tab.id !== id)
-  // orderを再調整
-  filteredTabs.forEach((tab, index) => {
-    tab.order = index
-  })
-  localStorage.setItem(STORAGE_KEYS.TABS, JSON.stringify(filteredTabs))
-  return true
-}
+export const addTab = async (name) => {
+  try {
+    const tabs = await getAllTabs()
+    const newOrder = tabs.length
 
-// タブの更新
-export const updateTab = (id, name) => {
-  const tabs = getAllTabs()
-  const tab = tabs.find(t => t.id === id)
-  if (tab) {
-    tab.name = name
-    localStorage.setItem(STORAGE_KEYS.TABS, JSON.stringify(tabs))
-    return tab
+    const { data, error } = await supabase
+      .from('tabs')
+      .insert([{
+        id: Date.now().toString(),
+        name,
+        order: newOrder
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error adding tab:', error)
+    throw error
   }
-  return null
+}
+
+export const deleteTab = async (id) => {
+  try {
+    // タブを削除
+    const { error: deleteError } = await supabase
+      .from('tabs')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) throw deleteError
+
+    // 残りのタブのorderを再調整
+    const tabs = await getAllTabs()
+    for (let i = 0; i < tabs.length; i++) {
+      if (tabs[i].order !== i) {
+        await supabase
+          .from('tabs')
+          .update({ order: i })
+          .eq('id', tabs[i].id)
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting tab:', error)
+    return false
+  }
+}
+
+export const updateTab = async (id, name) => {
+  try {
+    const { data, error } = await supabase
+      .from('tabs')
+      .update({ name })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error updating tab:', error)
+    return null
+  }
+}
+
+// Home Settings関連
+export const getHomeSettings = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('home_settings')
+      .select('*')
+      .eq('id', 1)
+      .single()
+
+    if (error) throw error
+    return data || { title: 'SHIFTAI会員限定ストア', subtitle: 'あなたのブラウジング体験をパワーアップ✨', banner_image: '' }
+  } catch (error) {
+    console.error('Error fetching home settings:', error)
+    return { title: 'SHIFTAI会員限定ストア', subtitle: 'あなたのブラウジング体験をパワーアップ✨', banner_image: '' }
+  }
+}
+
+export const updateHomeSettings = async (settings) => {
+  try {
+    // バナー画像をアップロード
+    let bannerImageUrl = settings.bannerImage
+    if (settings.bannerImage && settings.bannerImage.startsWith('data:')) {
+      bannerImageUrl = await uploadBase64File(
+        settings.bannerImage,
+        'extension-assets',
+        `banners/home_banner_${Date.now()}.png`
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('home_settings')
+      .update({
+        title: settings.title,
+        subtitle: settings.subtitle,
+        banner_image: bannerImageUrl
+      })
+      .eq('id', 1)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error updating home settings:', error)
+    throw error
+  }
 }

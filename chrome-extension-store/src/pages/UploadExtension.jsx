@@ -25,11 +25,14 @@ function UploadExtension() {
   })
 
   useEffect(() => {
-    const allTabs = getAllTabs()
-    setTabs(allTabs)
-    if (allTabs.length > 0) {
-      setFormData(prev => ({ ...prev, tabId: allTabs[0].id }))
+    const loadTabs = async () => {
+      const allTabs = await getAllTabs()
+      setTabs(allTabs)
+      if (allTabs.length > 0) {
+        setFormData(prev => ({ ...prev, tabId: allTabs[0].id }))
+      }
     }
+    loadTabs()
   }, [])
 
   const handleInputChange = (e) => {
@@ -101,7 +104,7 @@ function UploadExtension() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!formData.name.trim() || !formData.description.trim() || !formData.longDescription.trim() || !formData.discordName.trim() || !formData.email.trim()) {
@@ -126,7 +129,7 @@ function UploadExtension() {
       return
     }
 
-    const newExtension = addExtension(formData)
+    const newExtension = await addExtension(formData)
     alert('制作物を投稿しました！')
     navigate(`/extension/${newExtension.id}`)
   }

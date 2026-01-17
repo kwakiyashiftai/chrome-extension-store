@@ -28,34 +28,34 @@ function ExtensionDetail() {
     loadReviews()
   }, [id])
 
-  const loadExtension = () => {
-    const ext = getExtensionById(id)
+  const loadExtension = async () => {
+    const ext = await getExtensionById(id)
     if (ext) {
       setExtension(ext)
     }
   }
 
-  const loadReviews = () => {
-    const revs = getReviewsByExtensionId(id)
+  const loadReviews = async () => {
+    const revs = await getReviewsByExtensionId(id)
     setReviews(revs)
   }
 
-  const handleDownload = () => {
-    const updated = incrementDownloads(id)
+  const handleDownload = async () => {
+    const updated = await incrementDownloads(id)
     if (updated) {
       setExtension(updated)
       window.open(extension.downloadUrl, '_blank')
     }
   }
 
-  const handleSubmitReview = (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault()
     if (!newReview.author.trim() || !newReview.comment.trim()) {
       alert('名前とコメントを入力してください')
       return
     }
 
-    addReview({
+    await addReview({
       extensionId: id,
       ...newReview
     })
@@ -66,15 +66,15 @@ function ExtensionDetail() {
       author: ''
     })
 
-    loadReviews()
-    loadExtension()
+    await loadReviews()
+    await loadExtension()
   }
 
-  const handleDeleteReview = (reviewId) => {
+  const handleDeleteReview = async (reviewId) => {
     if (window.confirm('このレビューを削除してもよろしいですか？')) {
-      deleteReview(reviewId, id)
-      loadReviews()
-      loadExtension()
+      await deleteReview(reviewId, id)
+      await loadReviews()
+      await loadExtension()
     }
   }
 

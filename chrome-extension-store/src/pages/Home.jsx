@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { initializeStore, searchExtensions, getAllTabs } from '../data/store'
+import { initializeStore, searchExtensions, getAllTabs, getHomeSettings } from '../data/store'
 import ExtensionCard from '../components/ExtensionCard'
 import FilterBar from '../components/FilterBar'
 import './Home.css'
@@ -17,32 +17,39 @@ function Home({ searchQuery = '' }) {
   })
 
   useEffect(() => {
-    initializeStore()
-    loadTabs()
-    loadHomeSettings()
+    const init = async () => {
+      await initializeStore()
+      await loadTabs()
+      await loadHomeSettings()
+    }
+    init()
   }, [])
 
   useEffect(() => {
     loadExtensions()
   }, [searchQuery, selectedCategory, sortBy, activeTab])
 
-  const loadTabs = () => {
-    const allTabs = getAllTabs()
+  const loadTabs = async () => {
+    const allTabs = await getAllTabs()
     setTabs(allTabs)
     if (allTabs.length > 0 && !activeTab) {
       setActiveTab(allTabs[0].id)
     }
   }
 
-  const loadHomeSettings = () => {
-    const settings = localStorage.getItem('home_settings')
+  const loadHomeSettings = async () => {
+    const settings = await getHomeSettings()
     if (settings) {
-      setHomeSettings(JSON.parse(settings))
+      setHomeSettings({
+        title: settings.title,
+        subtitle: settings.subtitle,
+        bannerImage: settings.banner_image
+      })
     }
   }
 
-  const loadExtensions = () => {
-    let results = searchExtensions(searchQuery, selectedCategory, sortBy)
+  const loadExtensions = async () => {
+    let results = await searchExtensions(searchQuery, selectedCategory, sortBy)
     // アクティブなタブでフィルタリング
     results = results.filter(ext => ext.tabId === activeTab || !ext.tabId)
     setExtensions(results)

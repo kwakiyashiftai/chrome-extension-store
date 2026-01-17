@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, Edit, Trash2, Save, Upload, Settings, Plus, X } from 'lucide-react'
-import { getAllExtensions, deleteExtension, getAllTabs, addTab, deleteTab, updateTab } from '../data/store'
+import { getAllExtensions, deleteExtension, getAllTabs, addTab, deleteTab, updateTab, getHomeSettings, updateHomeSettings } from '../data/store'
 import './AdminDashboard.css'
 
 function AdminDashboard() {
@@ -30,20 +30,24 @@ function AdminDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const loadExtensions = () => {
-    const exts = getAllExtensions()
+  const loadExtensions = async () => {
+    const exts = await getAllExtensions()
     setExtensions(exts)
   }
 
-  const loadTabs = () => {
-    const allTabs = getAllTabs()
+  const loadTabs = async () => {
+    const allTabs = await getAllTabs()
     setTabs(allTabs)
   }
 
-  const loadHomeSettings = () => {
-    const settings = localStorage.getItem('home_settings')
+  const loadHomeSettings = async () => {
+    const settings = await getHomeSettings()
     if (settings) {
-      setHomeSettings(JSON.parse(settings))
+      setHomeSettings({
+        title: settings.title,
+        subtitle: settings.subtitle,
+        bannerImage: settings.banner_image
+      })
     }
   }
 
@@ -52,17 +56,22 @@ function AdminDashboard() {
     navigate('/')
   }
 
-  const handleDeleteExtension = (id, name) => {
+  const handleDeleteExtension = async (id, name) => {
     if (window.confirm(`「${name}」を削除してもよろしいですか？`)) {
-      deleteExtension(id)
-      loadExtensions()
+      await deleteExtension(id)
+      await loadExtensions()
     }
   }
 
-  const handleSaveHomeSettings = () => {
-    localStorage.setItem('home_settings', JSON.stringify(homeSettings))
-    setIsEditingHome(false)
-    alert('ホーム設定を保存しました')
+  const handleSaveHomeSettings = async () => {
+    try {
+      await updateHomeSettings(homeSettings)
+      setIsEditingHome(false)
+      alert('ホーム設定を保存しました')
+    } catch (error) {
+      alert('保存に失敗しました')
+      console.error(error)
+    }
   }
 
   const handleBannerImageUpload = (e) => {
@@ -80,24 +89,24 @@ function AdminDashboard() {
     setHomeSettings({ ...homeSettings, bannerImage: '' })
   }
 
-  const handleAddTab = () => {
+  const handleAddTab = async () => {
     if (!newTabName.trim()) {
       alert('タブ名を入力してください')
       return
     }
-    addTab(newTabName)
+    await addTab(newTabName)
     setNewTabName('')
-    loadTabs()
+    await loadTabs()
   }
 
-  const handleDeleteTab = (id, name) => {
+  const handleDeleteTab = async (id, name) => {
     if (tabs.length <= 1) {
       alert('最低1つのタブが必要です')
       return
     }
     if (window.confirm(`「${name}」タブを削除してもよろしいですか？`)) {
-      deleteTab(id)
-      loadTabs()
+      await deleteTab(id)
+      await loadTabs()
     }
   }
 
