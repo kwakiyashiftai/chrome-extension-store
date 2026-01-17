@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd chrome-extension-store && npm install && npm run build",
+  "outputDirectory": "chrome-extension-store/dist",
+  "installCommand": "cd chrome-extension-store && npm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
