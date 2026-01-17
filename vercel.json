@@ -2,5 +2,5 @@
   "buildCommand": "cd chrome-extension-store && npm run build",
   "outputDirectory": "chrome-extension-store/dist",
   "installCommand": "cd chrome-extension-store && npm install",
-  "framework": "vite"
+  "framework": null
 }
