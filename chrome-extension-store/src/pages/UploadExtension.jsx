@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, X } from 'lucide-react'
-import { addExtension, getAllTabs } from '../data/store'
-import { categories } from '../data/mockData'
+import { addExtension, getAllTabs, getAllCategories } from '../data/store'
 import './UploadExtension.css'
 
 function UploadExtension() {
   const navigate = useNavigate()
   const [tabs, setTabs] = useState([])
+  const [categories, setCategories] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,14 +25,20 @@ function UploadExtension() {
   })
 
   useEffect(() => {
-    const loadTabs = async () => {
+    const loadData = async () => {
       const allTabs = await getAllTabs()
       setTabs(allTabs)
       if (allTabs.length > 0) {
         setFormData(prev => ({ ...prev, tabId: allTabs[0].id }))
       }
+
+      const allCategories = await getAllCategories()
+      setCategories(allCategories.map(cat => cat.name))
+      if (allCategories.length > 0) {
+        setFormData(prev => ({ ...prev, category: allCategories[0].name }))
+      }
     }
-    loadTabs()
+    loadData()
   }, [])
 
   const handleInputChange = (e) => {
@@ -201,7 +207,7 @@ function UploadExtension() {
                 onChange={handleInputChange}
                 required
               >
-                {categories.filter(c => c !== 'すべて').map(category => (
+                {categories.map(category => (
                   <option key={category} value={category}>
                     {category}
                   </option>

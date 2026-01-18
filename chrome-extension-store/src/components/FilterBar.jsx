@@ -1,7 +1,20 @@
-import { categories } from '../data/mockData'
+import { useState, useEffect } from 'react'
+import { getAllCategories } from '../data/store'
 import './FilterBar.css'
 
 function FilterBar({ selectedCategory, onCategoryChange, sortBy, onSortChange }) {
+  const [categories, setCategories] = useState([])
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    const data = await getAllCategories()
+    // 「すべて」を先頭に追加
+    setCategories(['すべて', ...data.map(cat => cat.name)])
+  }
+
   return (
     <div className="filter-bar">
       <div className="categories">

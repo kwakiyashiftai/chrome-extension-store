@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, Edit, Trash2, Save, Upload, Settings, Plus, X } from 'lucide-react'
-import { getAllExtensions, deleteExtension, getAllTabs, addTab, deleteTab, updateTab, getHomeSettings, updateHomeSettings } from '../data/store'
+import { getAllExtensions, deleteExtension, getAllTabs, addTab, deleteTab, updateTab, getHomeSettings, updateHomeSettings, getAllCategories, addCategory, deleteCategory, updateCategory } from '../data/store'
 import './AdminDashboard.css'
 
 function AdminDashboard() {
@@ -9,6 +9,8 @@ function AdminDashboard() {
   const [extensions, setExtensions] = useState([])
   const [tabs, setTabs] = useState([])
   const [newTabName, setNewTabName] = useState('')
+  const [categories, setCategories] = useState([])
+  const [newCategoryName, setNewCategoryName] = useState('')
   const [homeSettings, setHomeSettings] = useState({
     title: 'SHIFTAI会員限定ストア',
     subtitle: 'あなたにぴったりの制作物を見つけよう',
@@ -27,6 +29,7 @@ function AdminDashboard() {
     loadExtensions()
     loadHomeSettings()
     loadTabs()
+    loadCategories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -38,6 +41,11 @@ function AdminDashboard() {
   const loadTabs = async () => {
     const allTabs = await getAllTabs()
     setTabs(allTabs)
+  }
+
+  const loadCategories = async () => {
+    const allCategories = await getAllCategories()
+    setCategories(allCategories)
   }
 
   const loadHomeSettings = async () => {
@@ -107,6 +115,35 @@ function AdminDashboard() {
     if (window.confirm(`「${name}」タブを削除してもよろしいですか？`)) {
       await deleteTab(id)
       await loadTabs()
+    }
+  }
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('カテゴリ名を入力してください')
+      return
+    }
+    try {
+      await addCategory(newCategoryName)
+      setNewCategoryName('')
+      await loadCategories()
+    } catch (error) {
+      if (error.message?.includes('duplicate') || error.code === '23505') {
+        alert('このカテゴリ名は既に存在します')
+      } else {
+        alert('カテゴリの追加に失敗しました')
+      }
+    }
+  }
+
+  const handleDeleteCategory = async (id, name) => {
+    if (window.confirm(`「${name}」カテゴリを削除してもよろしいですか？\n注意: このカテゴリを使用している制作物がある場合は、先に変更してください。`)) {
+      const success = await deleteCategory(id)
+      if (success) {
+        await loadCategories()
+      } else {
+        alert('カテゴリの削除に失敗しました')
+      }
     }
   }
 
@@ -252,6 +289,41 @@ function AdminDashboard() {
                   className="delete-tab-btn"
                   onClick={() => handleDeleteTab(tab.id, tab.name)}
                   disabled={tabs.length <= 1}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* カテゴリ管理 */}
+        <div className="admin-section">
+          <div className="section-header">
+            <h2>カテゴリ管理</h2>
+          </div>
+
+          <div className="tab-add-form">
+            <input
+              type="text"
+              placeholder="新しいカテゴリ名を入力"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+            />
+            <button className="add-tab-btn" onClick={handleAddCategory}>
+              <Plus size={16} />
+              <span>カテゴリを追加</span>
+            </button>
+          </div>
+
+          <div className="tabs-list">
+            {categories.map(category => (
+              <div key={category.id} className="tab-item">
+                <span className="tab-name">{category.name}</span>
+                <button
+                  className="delete-tab-btn"
+                  onClick={() => handleDeleteCategory(category.id, category.name)}
                 >
                   <Trash2 size={16} />
                 </button>

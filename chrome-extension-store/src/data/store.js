@@ -428,6 +428,93 @@ export const updateTab = async (id, name) => {
   }
 }
 
+// Categories関連
+export const getAllCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('display_order', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    return []
+  }
+}
+
+export const addCategory = async (name, displayOrder = null) => {
+  try {
+    // display_orderが指定されていない場合、最後に追加
+    let order = displayOrder
+    if (order === null) {
+      const categories = await getAllCategories()
+      order = categories.length
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([{
+        name,
+        display_order: order
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error adding category:', error)
+    throw error
+  }
+}
+
+export const updateCategory = async (id, name, displayOrder) => {
+  try {
+    const updates = {}
+    if (name !== undefined) updates.name = name
+    if (displayOrder !== undefined) updates.display_order = displayOrder
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error updating category:', error)
+    throw error
+  }
+}
+
+export const deleteCategory = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    // display_orderを再調整
+    const categories = await getAllCategories()
+    for (let i = 0; i < categories.length; i++) {
+      if (categories[i].display_order !== i) {
+        await updateCategory(categories[i].id, undefined, i)
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting category:', error)
+    return false
+  }
+}
+
 // Home Settings関連
 export const getHomeSettings = async () => {
   try {
