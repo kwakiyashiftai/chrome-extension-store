@@ -44,7 +44,9 @@ function ExtensionDetail() {
     const updated = await incrementDownloads(id)
     if (updated) {
       setExtension(updated)
-      window.open(extension.downloadUrl, '_blank')
+      // zip_file_urlを優先、なければdownloadUrlを使う
+      const downloadUrl = extension.zipFileUrl || extension.downloadUrl
+      window.open(downloadUrl, '_blank')
     }
   }
 
