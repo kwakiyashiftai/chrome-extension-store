@@ -112,6 +112,7 @@ function UploadExtension() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('🎉 投稿ボタンが押されました！', formData)
 
     if (!formData.name.trim() || !formData.description.trim() || !formData.longDescription.trim() || !formData.discordName.trim() || !formData.email.trim()) {
       alert('必須項目を入力してください')
@@ -135,9 +136,16 @@ function UploadExtension() {
       return
     }
 
-    const newExtension = await addExtension(formData)
-    alert('制作物を投稿しました！')
-    navigate(`/extension/${newExtension.id}`)
+    try {
+      console.log('📤 Supabaseに送信中...')
+      const newExtension = await addExtension(formData)
+      console.log('✅ 投稿成功！', newExtension)
+      alert('制作物を投稿しました！')
+      navigate(`/extension/${newExtension.id}`)
+    } catch (error) {
+      console.error('❌ 投稿エラー:', error)
+      alert(`投稿に失敗しました: ${error.message}`)
+    }
   }
 
   return (

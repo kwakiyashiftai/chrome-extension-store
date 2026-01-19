@@ -94,7 +94,7 @@ export const addExtension = async (extension) => {
     if (extension.icon && extension.icon.startsWith('data:')) {
       iconUrl = await uploadBase64File(
         extension.icon,
-        'extension-assets',
+        'images',
         `icons/${extensionId}.png`
       )
     }
@@ -107,7 +107,7 @@ export const addExtension = async (extension) => {
         if (screenshot.startsWith('data:')) {
           const url = await uploadBase64File(
             screenshot,
-            'extension-assets',
+            'images',
             `screenshots/${extensionId}_${i}.png`
           )
           screenshotUrls.push(url)
@@ -123,7 +123,7 @@ export const addExtension = async (extension) => {
     if (extension.zipFile) {
       zipFileUrl = await uploadFile(
         extension.zipFile,
-        'extension-files',
+        'extensions-files',
         `${extensionId}/${extension.zipFile.name}`
       )
       zipFileName = extension.zipFile.name
