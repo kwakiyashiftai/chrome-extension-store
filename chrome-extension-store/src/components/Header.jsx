@@ -13,7 +13,7 @@ function Header({ searchQuery = '', setSearchQuery = () => {}, showSearch = true
             alt="SHIFTAI Logo"
             className="logo-image"
           />
-          <span className="logo-text">SHIFTAI専用 制作物ストア</span>
+          <span className="logo-text">ShareHub</span>
         </Link>
 
         {showSearch && (

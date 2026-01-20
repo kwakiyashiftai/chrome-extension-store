@@ -7,7 +7,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-content">
-          <p>&copy; 2024 SHIFTAI専用 制作物ストア. All rights reserved.</p>
+          <p>&copy; 2024 ShareHub. All rights reserved.</p>
         </div>
         <Link to="/admin/login" className="admin-link">
           <Shield size={16} />

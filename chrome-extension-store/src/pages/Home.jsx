@@ -11,7 +11,7 @@ function Home({ searchQuery = '' }) {
   const [tabs, setTabs] = useState([])
   const [activeTab, setActiveTab] = useState('1')
   const [homeSettings, setHomeSettings] = useState({
-    title: 'SHIFTAI会員限定ストア',
+    title: 'ShareHub',
     subtitle: 'あなたのブラウジング体験をパワーアップ✨',
     bannerImage: ''
   })

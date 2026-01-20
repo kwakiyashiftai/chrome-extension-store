@@ -12,7 +12,7 @@ function AdminDashboard() {
   const [categories, setCategories] = useState([])
   const [newCategoryName, setNewCategoryName] = useState('')
   const [homeSettings, setHomeSettings] = useState({
-    title: 'SHIFTAI会員限定ストア',
+    title: 'ShareHub',
     subtitle: 'あなたにぴったりの制作物を見つけよう',
     bannerImage: ''
   })
