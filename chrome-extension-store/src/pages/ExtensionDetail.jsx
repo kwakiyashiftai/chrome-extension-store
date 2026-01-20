@@ -45,8 +45,12 @@ function ExtensionDetail() {
     if (updated) {
       setExtension(updated)
       // zip_file_urlを優先、なければdownloadUrlを使う
-      const downloadUrl = extension.zipFileUrl || extension.downloadUrl
-      window.open(downloadUrl, '_blank')
+      const downloadUrl = updated.zip_file_url || updated.download_url
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank')
+      } else {
+        alert('ダウンロードURLが設定されていません')
+      }
     }
   }
 
